@@ -1,0 +1,2 @@
+# jBot
+Starcraft II Bot
