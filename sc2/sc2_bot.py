@@ -13,6 +13,8 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
         self.MAX_WORKERS = 65
 
     async def on_step(self, iteration):  # first thing game does on startup
+        if iteration == 0:
+            await self.chat_send("(JustinBot Wishes the Opponent Good Luck)")
         self.iteration = iteration
 
         await self.distribute_workers()
@@ -94,17 +96,17 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
         # TO ADD - CLUMP OF 3 BEFORE THEY GO AND ATTACK
 
         # {UNIT: [n to search for a fight, n to defend]
-        aggressive_units = {STALKER: [15, 3],
-                           VOIDRAY: [8, 3]}
+        aggressive_units = {STALKER: [12, 3],
+                           VOIDRAY: [4, 2]}
 
         for UNIT in aggressive_units:
-            if self.units(UNIT).amount > aggressive_units[UNIT][0] and self.units(UNIT).amount > aggressive_units:
+            if self.units(UNIT).amount > aggressive_units[UNIT][0] and self.units(UNIT).amount > aggressive_units[UNIT][1]:
                 for s in self.units(UNIT).idle:
                     await self.do(s.attack(self.find_target(self.state)))
 
-            if self.units(UNIT).amount > aggressive_units[UNIT][1]:
+            elif self.units(UNIT).amount > aggressive_units[UNIT][1]:
                 if len(self.known_enemy_units) > 0:
-                    for s in self.units(UNIT.idle):
+                    for s in self.units(UNIT).idle:
                         await self.do(s.attack(random.choice(self.known_enemy_units)))
 
 
