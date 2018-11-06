@@ -96,8 +96,8 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
         # TO ADD - CLUMP OF 3 BEFORE THEY GO AND ATTACK
 
         # {UNIT: [n to search for a fight, n to defend]
-        aggressive_units = {STALKER: [12, 3],
-                           VOIDRAY: [4, 2]}
+        aggressive_units = {STALKER: [15, 4],
+                           VOIDRAY: [5, 2]}
 
         for UNIT in aggressive_units:
             if self.units(UNIT).amount > aggressive_units[UNIT][0] and self.units(UNIT).amount > aggressive_units[UNIT][1]:
@@ -113,5 +113,5 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
 # Runs the game. can specify the map, who is playing, and game speed
 run_game(maps.get("AbyssalReefLE"), [
     Bot(Race.Protoss, JustinBot()),
-    Computer(Race.Terran, Difficulty.Medium)
+    Computer(Race.Terran, Difficulty.Easy)
     ], realtime=False)
