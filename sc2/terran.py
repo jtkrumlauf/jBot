@@ -19,7 +19,7 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
 
         await self.distribute_workers()
         await self.build_workers()
-        await self.build_pylons()
+        await self.build_supplydepot()
         await self.build_assimilator()
         await self.expand()
         await self.offensive_force_buildings()
@@ -33,7 +33,7 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
                     if self.can_afford(SCV):  # if can afford a SCV...
                         await self.do(nexus.train(SCV))  # train the PROBE
 
-    async def build_pylons(self):
+    async def build_supplydepot(self):
         if self.supply_left < 5 and not self.already_pending(SUPPLYDEPOT):  # if pop. remaining is < x and SD not currently being built
             nexuses = self.units(COMMANDCENTER).ready  # a nexus tha already exists
             if nexuses.exists:
@@ -57,44 +57,53 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
             await self.expand_now()  # goes and expands to another resource area
 
     async def offensive_force_buildings(self):
-        # SG = FACTORY
-        # GATEWAY = BARRACKS
-        # CC = FACTORY
+        # PATH OF PROGRESSION:
         # barracks --> factory --> starport
         #
         # ADD LOGIC TO: see what buildings can be upgrades...based on iteration/min determine whether or not to upgrade
         if self.units(SUPPLYDEPOT).ready.exists:  # as long as some pylon exists
             building_loc = self.units(SUPPLYDEPOT).ready.random  # picks random pylon
 
+            # BUILD FACTORY/FACTORY TECH LAB
             if self.units(BARRACKS).ready.exists and not self.units(FACTORY):  # if have BARRACKS and is ready and exists
                 if self.can_afford(FACTORY) and not self.already_pending(FACTORY):  # if can afford FACTORY and not already pending
                     await self.build(FACTORY, near=building_loc)  # builds FACTORY near the random SUPPLYDEPOT
                     # builds only ONE factory...can change in future
+            if self.units(FACTORY).ready.exists and self.can_afford(FACTORYTECHLAB):  # checks if factory already exists and if can afford tech lab
+                for ready_factories in self.units(FACTORY).ready:  # for each ready factory in factories
+                    await self.do(ready_factories.build(FACTORYTECHLAB))  # build a tech lab on a given factory
 
-            elif len(self.units(BARRACKS)) < ((self.iteration / self.ITERATIONS_PER_MINUTE)/2):
+            # BUILD BARRACKS/BARRACKS TECH LAB
+            if len(self.units(BARRACKS)) < ((self.iteration / self.ITERATIONS_PER_MINUTE)/2):  # ~1 every minute
                 if self.can_afford(BARRACKS) and not self.already_pending(BARRACKS):  # if can afford BARRACKS and not pending
                     await self.build(BARRACKS, near=building_loc)  # builds BARRACKS near random SUPPLYDEPOT from above
+            if self.units(BARRACKS).ready.exists and self.can_afford(BARRACKSTECHLAB):  # checks if barracks exists and if can afford tech lab
+                for ready_barracks in self.units(BARRACKS).ready:  # for each ready barracks in barracks list
+                    await self.do(ready_barracks.build(BARRACKSTECHLAB))  # build a tech lab for the given barracks
 
-            if self.units(FACTORY).ready.exists:  # if FACTORY is ready and exists...
-                if len(self.units(STARPORT)) < ((self.iteration / self.ITERATIONS_PER_MINUTE)/2):
-                    if self.can_afford(STARPORT) and not self.already_pending(STARPORT):  # if can afford a STARPORT and not already pending
-                        await self.build(STARPORT, near=building_loc)
+            # if self.units(FACTORY).ready.exists:  # if FACTORY is ready and exists...
+            #     if len(self.units(STARPORT)) < ((self.iteration / self.ITERATIONS_PER_MINUTE)/2):
+            #         if self.can_afford(STARPORT) and not self.already_pending(STARPORT):  # if can afford a STARPORT and not already pending
+            #             await self.build(STARPORT, near=building_loc)
 
     async def build_offensive_force(self):
+        # BUILD BARRACKS UNITS
         for barr in self.units(BARRACKS).ready.noqueue:  # for each BARRACK in ready BARRACKS
-            if self.can_afford(MARINE) and self.supply_left > 0:  # if can afford MARINE and supply left > 0
+            if self.units(BARRACKSTECHLAB).exists and self.can_afford(MARAUDER) and self.supply_left > 0:  # HIGHEST priority given to MARAUDERS over rest in scope of for-loop
+                await self.do(barr.train(MARAUDER))  # train MARAUDER
+            if self.can_afford(MARINE) and self.supply_left > 0:  # if can afford MARINE but not MARAUDER and supply left > 0
+                await self.do(barr.train(MARINE))  # trains MARINE
 
-                if self.can_afford(MARINE) and self.supply_left > 0:
-                    await self.do(barr.train(MARINE))  # trains MARINE
-
-        # **** ERROR HERE WITH PRODUCING VULTURES - KeyError: 1135 ****
+        # BUILD FACTORY UNITS
         for fact in self.units(FACTORY).ready.noqueue:  # for each FACTORY in ready FACTORIES
-            if self.can_afford(VULTURE) and self.supply_left > 0:
-                await self.do(fact.train(VULTURE))
+            if self.units(FACTORYTECHLAB).exists and self.can_afford(SIEGETANK) and self.supply_left > 0:  # HIGHEST priority given to SIEGETANK over rest in scope of for-loop
+                await self.do(fact.train(SIEGETANK))  # trains SIEGETANK
+            if self.can_afford(HELLION) and self.supply_left > 0:  # if can afford HELLION but not SIEGETANK
+                await self.do(fact.train(HELLION))  # trains HELLION
 
-        for st_pt in self.units(STARPORT).ready.noqueue:
-            if self.can_afford(VIKING) and self.supply_left > 0:
-                await self.do(st_pt.train(VIKING))
+        # for st_pt in self.units(STARPORT).ready.noqueue:
+        #     if self.can_afford(VIKING) and self.supply_left > 0:
+        #         await self.do(st_pt.train(VIKING))
 
     def find_target(self, state):
         if len(self.known_enemy_units) > 0:  # if know about some enemy unit
@@ -106,11 +115,12 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
 
     async def attack(self):
         # TO ADD - CLUMP IN GROUP BEFORE THEY GO AND ATTACK
-
+        #
         # {UNIT: [n to search for a fight, n to defend]
         aggressive_units = {MARINE: [15, 4],
-                           VULTURE: [7, 2],
-                           VIKING: [5, 2]}
+                            MARAUDER: [7, 3],
+                            HELLION: [7, 2],
+                            SIEGETANK: [4, 1]}
 
         for UNIT in aggressive_units:
             if self.units(UNIT).amount > aggressive_units[UNIT][0] and self.units(UNIT).amount > aggressive_units[UNIT][1]:
