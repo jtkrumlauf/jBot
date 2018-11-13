@@ -82,10 +82,10 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
 
         for sg in self.units(STARGATE).ready.noqueue:
             if self.can_afford(VOIDRAY) and self.supply_left > 0:
-                await self.do(sg.train(VOIDRAY))
+                await self.do(sg.train(VOIDRAY))  # trains voidray
 
     def find_target(self, state):
-        if len(self.known_enemy_units) > 0: # if know about some enemy unit
+        if len(self.known_enemy_units) > 0:  # if know about some enemy unit
             return random.choice(self.known_enemy_units)  # attack that target
         elif len(self.known_enemy_structures) > 0:  # if cant find any units and only structures
             return random.choice(self.known_enemy_structures)  # attack a random structure
@@ -114,4 +114,4 @@ class JustinBot(sc2.BotAI):  # see bot_ai.py to see inherited methods
 run_game(maps.get("AbyssalReefLE"), [
     Bot(Race.Protoss, JustinBot()),
     Computer(Race.Terran, Difficulty.Easy)
-    ], realtime=False)
+    ], realtime=True)
